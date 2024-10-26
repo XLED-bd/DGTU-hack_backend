@@ -6,7 +6,6 @@ from datetime import datetime
 
 app = FastAPI(title="Зелёный Ростов - API")
 
-# Pydantic models
 class ReceiptItem(BaseModel):
     name: str
     count: float
@@ -22,7 +21,6 @@ class Purchaser(BaseModel):
     id: str
     access: bool
 
-# In-memory storage
 purchasers_db = {
     "user1": {
         "id": "user1",
@@ -40,20 +38,19 @@ receipts_db = {
             "id": "receipt1",
             "time": "1729686754",
             "items": [
-                {"name": "Джем вишнёвый дой-пак", "count": 2.0, "price": 64.50},
-                {"name": "Куриная грудка охлаждённая", "count": 0.980, "price": 299.99}
+                {"name": "Джем вишнёвый дой-пак", "count": 2.0, "price": 64.50, "category": "food"},
+                {"name": "Куриная грудка охлаждённая", "count": 0.980, "price": 299.99, "category": "food"}
             ],
             "total_price": 402.99
         }
     ]
 }
 
-# Middleware for auth token check (simplified)
 @app.middleware("http")
 async def check_auth_token(request, call_next):
     auth_token = request.headers.get("X-Auth-Token")
-    if not auth_token or len(auth_token) != 128:
-        return HTTPException(status_code=401, detail="Invalid auth token")
+    if not auth_token or len(auth_token) != 2:
+        raise HTTPException(status_code=401, detail="Invalid auth token")
     return await call_next(request)
 
 # Endpoints
@@ -107,8 +104,6 @@ async def verify_access_code(purchaser_id: str, code: str):
 @app.get("/purchasers/{purchaser_id}/receipts", response_model=List[Receipt])
 async def get_receipts(
     purchaser_id: str,
-    from_time: str = Query(..., alias="from"),
-    to_time: str = Query(...)
 ):
     if purchaser_id not in purchasers_db:
         raise HTTPException(status_code=404, detail="Purchaser not found")
@@ -118,15 +113,12 @@ async def get_receipts(
     
     if purchaser_id not in receipts_db:
         raise HTTPException(status_code=404, detail="No receipts found")
-    
-    # Convert time strings to integers for comparison
-    from_timestamp = int(from_time)
-    to_timestamp = int(to_time)
+
+
     
     # Filter receipts by time range
     filtered_receipts = [
         receipt for receipt in receipts_db[purchaser_id]
-        if from_timestamp <= int(receipt["time"]) <= to_timestamp
     ]
     
     if not filtered_receipts:
@@ -136,4 +128,4 @@ async def get_receipts(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)
