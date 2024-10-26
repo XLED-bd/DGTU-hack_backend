@@ -105,6 +105,7 @@ async def verify_access_code(purchaser_id: str, code: str):
 async def get_receipts(
     purchaser_id: str,
 ):
+    
     if purchaser_id not in purchasers_db:
         raise HTTPException(status_code=404, detail="Purchaser not found")
     
